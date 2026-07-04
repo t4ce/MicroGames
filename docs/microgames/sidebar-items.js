@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["MAX_PIECE_CELLS"],"enum":["Feature","Layer","PieceKind","Rotation","TickResult"],"mod":["bejewled","chess","minesweeper","shell","snake"],"struct":["Block","CellView","FeatureFlags","Game","Lcg32","LevelState","MoveSuggestion","NoopEvents","Piece","Rgb8"],"trait":["RandomSource","TetrisEvents"]};

@@ -1,3 +1,9 @@
+//! Chess board and legal move logic.
+//!
+//! This module tracks pieces, side to move, castling rights, en-passant target,
+//! move counters, checkmate, and stalemate. It does not render a board or parse
+//! algebraic notation.
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Color {
     White,

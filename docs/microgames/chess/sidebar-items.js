@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["CastleSide","Color","GameState","MoveError","PieceKind"],"struct":["CastlingRights","Game","Move","MoveOutcome","Piece","Square"]};

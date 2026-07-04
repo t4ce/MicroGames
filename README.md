@@ -1,6 +1,12 @@
 # MicroGames
 
+[![crates.io](https://img.shields.io/crates/v/microgames.svg)](https://crates.io/crates/microgames)
+[![docs.rs](https://docs.rs/microgames/badge.svg)](https://docs.rs/microgames)
+[![license](https://img.shields.io/crates/l/microgames.svg)](https://github.com/t4ce/MicroGames)
+
 MicroGames is a `no_std` business-logic layer for tiny games.
+
+![MicroGames CLI Tetris example](examples/tetris.png)
 
 It is designed for the part of a game that should not care whether the screen is
 a terminal, a framebuffer, a GPU window, a serial shell, an embedded display, or
@@ -83,6 +89,11 @@ cargo run --example cli_tetris
 
 It is deliberately plain. The interesting part is that the game logic and shell
 renderer do not depend on std, TRUEOS, or a particular terminal backend.
+
+## Documentation
+
+- API docs: <https://docs.rs/microgames>
+- Crate page: <https://crates.io/crates/microgames>
 
 ## Publishing Check
 

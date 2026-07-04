@@ -13,6 +13,7 @@ impl ShellIo for StdoutIo {
 }
 
 fn main() -> std::io::Result<()> {
+    let _terminal = TerminalMode::enter()?;
     let io = StdoutIo;
     let mut app = microgames::shell::ShellApp::new(0xC11C_7E75, 120, 32);
     app.set_terminal_size(120, 32);
@@ -23,38 +24,64 @@ fn main() -> std::io::Result<()> {
     app.finalize_frame();
     flush_stdout()?;
 
-    let mut line = std::string::String::new();
+    let mut input = std::io::stdin();
+    let mut bytes = [0_u8; 64];
     loop {
-        std::print!(
-            "\nwasd/hjkl move, w/k rotate, z rotate back, space hard-drop, p pause, r reset, q quit > "
-        );
-        flush_stdout()?;
-
-        line.clear();
-        if std::io::stdin().read_line(&mut line)? == 0 {
-            break;
-        }
-
-        for byte in line.bytes() {
+        let count = read_available(&mut input, &mut bytes)?;
+        for byte in bytes.iter().copied().take(count) {
             if matches!(app.handle_input_byte(byte), ShellControl::Exit) {
-                std::print!("\x1b[?25h\x1b[0m\x1b[2J\x1b[H");
-                flush_stdout()?;
                 return Ok(());
             }
         }
 
-        app.tick(160);
+        app.tick(16);
         if app.consume_redraw() {
             app.draw(&io);
             app.finalize_frame();
             flush_stdout()?;
         }
-    }
 
-    std::print!("\x1b[?25h\x1b[0m\x1b[2J\x1b[H");
-    flush_stdout()
+        std::thread::sleep(std::time::Duration::from_millis(16));
+    }
+}
+
+fn read_available(input: &mut std::io::Stdin, bytes: &mut [u8]) -> std::io::Result<usize> {
+    match std::io::Read::read(input, bytes) {
+        Ok(count) => Ok(count),
+        Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => Ok(0),
+        Err(error) => Err(error),
+    }
 }
 
 fn flush_stdout() -> std::io::Result<()> {
     std::io::Write::flush(&mut std::io::stdout())
+}
+
+struct TerminalMode;
+
+impl TerminalMode {
+    fn enter() -> std::io::Result<Self> {
+        run_stty(&["raw", "-echo", "min", "0", "time", "0"])?;
+        Ok(Self)
+    }
+}
+
+impl Drop for TerminalMode {
+    fn drop(&mut self) {
+        std::print!("\x1b[?25h\x1b[0m\x1b[2J\x1b[H");
+        let _ = flush_stdout();
+        let _ = run_stty(&["sane"]);
+    }
+}
+
+fn run_stty(args: &[&str]) -> std::io::Result<()> {
+    let status = std::process::Command::new("stty").args(args).status()?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "stty failed to configure terminal",
+        ))
+    }
 }

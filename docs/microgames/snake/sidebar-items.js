@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["CellKind","Direction","GameState","TickResult"],"struct":["Game","NoopEvents","StepInfo"],"trait":["SnakeEvents"]};

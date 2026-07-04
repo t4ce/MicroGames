@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["GemKind","SwapOutcome"],"struct":["Game","MatchEvent","NoopEvents"],"trait":["BejewledEvents"]};

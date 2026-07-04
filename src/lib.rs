@@ -1,23 +1,93 @@
 #![no_std]
+//! `no_std` business logic for tiny games.
+//!
+//! MicroGames is the part of a game that should not know whether it is being
+//! displayed in a terminal, framebuffer, GPU window, serial shell, embedded
+//! display, or custom OS UI. It owns rules and state transitions; your platform
+//! owns events, input, timing, audio, and output.
+//!
+//! The crate currently includes engines for:
+//!
+//! - Tetris-like falling blocks via [`Game`]
+//! - [`snake`]
+//! - [`minesweeper`]
+//! - [`bejewled`]
+//! - [`chess`]
+//! - a terminal-oriented Tetris shell adapter in [`shell`]
+//!
+//! # Basic Tetris Loop
+//!
+//! ```
+//! use microgames::{Lcg32, NoopEvents, Rotation};
+//!
+//! let mut rng = Lcg32::new(0xC11C_7E75);
+//! let mut events = NoopEvents;
+//! let mut game = microgames::Game::<10, 24, 4>::new(&mut rng, &mut events);
+//!
+//! game.move_left();
+//! game.rotate(Rotation::Cw);
+//! game.soft_drop(&mut rng, &mut events);
+//!
+//! for y in game.hidden_rows()..game.height_total() {
+//!     for x in 0..game.width() {
+//!         let cell = game.cell_view_at(x, y, true);
+//!         let _ = cell;
+//!     }
+//! }
+//! ```
+//!
+//! # Events
+//!
+//! Game engines report meaningful side effects through event traits. A renderer,
+//! audio system, logger, network sync layer, or test harness can implement only
+//! the callbacks it needs.
+//!
+//! ```
+//! use microgames::{Rgb8, TetrisEvents};
+//!
+//! struct Effects;
+//!
+//! impl TetrisEvents for Effects {
+//!     fn on_block_placed(&mut self, color: Rgb8, x: usize, y: usize) {
+//!         let _ = (color, x, y);
+//!     }
+//! }
+//! ```
+//!
+//! Use [`NoopEvents`] when you only want to drive the rules.
 
 use core::cmp::{max, min};
 
+/// Bejeweled-style match-3 game logic.
 pub mod bejewled;
+/// Chess board, legal move, castling, promotion, en-passant, and state logic.
 pub mod chess;
+/// Minesweeper board generation, reveal, flag, chord, and win/loss logic.
 pub mod minesweeper;
+/// A terminal-oriented Tetris shell adapter built on [`core::fmt`].
 pub mod shell;
+/// Snake movement, growth, food, scoring, and collision logic.
 pub mod snake;
 
+/// Maximum number of cells a Tetris-like piece can occupy.
 pub const MAX_PIECE_CELLS: usize = 8;
 
+/// Small RGB color used by the built-in game logic and renderer adapters.
+///
+/// It is intentionally local to this crate so MicroGames does not depend on any
+/// platform UI crate.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Rgb8 {
+    /// Red channel.
     pub r: u8,
+    /// Green channel.
     pub g: u8,
+    /// Blue channel.
     pub b: u8,
 }
 
 impl Rgb8 {
+    /// Creates a new 8-bit RGB color.
     pub const fn new(r: u8, g: u8, b: u8) -> Self {
         Self { r, g, b }
     }
@@ -37,9 +107,11 @@ impl Point {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Block {
+    /// The block color selected when the piece was spawned.
     pub color: Rgb8,
 }
 
+/// Tetris-like piece shape.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PieceKind {
     Line,
@@ -53,6 +125,7 @@ pub enum PieceKind {
 }
 
 impl PieceKind {
+    /// All standard non-evil pieces.
     pub const NON_EVIL: [PieceKind; 7] = [
         PieceKind::Line,
         PieceKind::ZigZag,
@@ -63,6 +136,7 @@ impl PieceKind {
         PieceKind::J,
     ];
 
+    /// Every piece this engine can spawn, including the optional evil block.
     pub const ALL: [PieceKind; 8] = [
         PieceKind::Line,
         PieceKind::ZigZag,
@@ -75,19 +149,27 @@ impl PieceKind {
     ];
 }
 
+/// Rotation direction for Tetris-like pieces.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Rotation {
+    /// Clockwise rotation.
     Cw,
+    /// Counter-clockwise rotation.
     Ccw,
 }
 
+/// Result of a Tetris-like gravity or drop tick.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TickResult {
+    /// The current piece moved down.
     Moved,
+    /// The current piece locked and a new piece was spawned.
     Locked,
+    /// The board can no longer accept a new piece.
     GameOver,
 }
 
+/// Feature unlocked by the built-in Tetris level progression.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Feature {
     Minimum,
@@ -102,22 +184,27 @@ pub enum Feature {
     Shifted,
 }
 
+/// Compact set of enabled [`Feature`] values.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct FeatureFlags(u16);
 
 impl FeatureFlags {
+    /// Creates the default feature set with [`Feature::Minimum`] enabled.
     pub const fn new() -> Self {
         Self(1 << (Feature::Minimum as u16))
     }
 
+    /// Returns true when `feature` is enabled.
     pub fn contains(self, feature: Feature) -> bool {
         (self.0 & (1 << (feature as u16))) != 0
     }
 
+    /// Enables `feature`.
     pub fn insert(&mut self, feature: Feature) {
         self.0 |= 1 << (feature as u16);
     }
 
+    /// Disables `feature`.
     pub fn remove(&mut self, feature: Feature) {
         self.0 &= !(1 << (feature as u16));
     }
@@ -129,19 +216,29 @@ impl Default for FeatureFlags {
     }
 }
 
+/// Built-in Tetris-like level, score, and feature progression.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct LevelState {
+    /// First level.
     pub start_level: u8,
+    /// Final level.
     pub end_level: u8,
+    /// Current active level.
     pub current_level: u8,
+    /// Score multiplier.
     pub multiplier: u16,
+    /// Number of locked pieces.
     pub placed_pieces: u32,
+    /// Number of cleared rows.
     pub rows_deleted: u32,
+    /// Accumulated points.
     pub total_points: u32,
+    /// Enabled feature flags.
     pub features: FeatureFlags,
 }
 
 impl LevelState {
+    /// Creates the default level state.
     pub const fn new() -> Self {
         Self {
             start_level: 1,
@@ -155,15 +252,18 @@ impl LevelState {
         }
     }
 
+    /// Rows remaining until the next level boundary.
     pub fn next_level_in_rows(&self) -> u32 {
         5 - (self.rows_deleted % 5)
     }
 
+    /// Current gravity interval in milliseconds.
     pub fn level_speed_seconds(&self) -> u32 {
         let speed_millis = 400_i32 - (self.current_level as i32 * 25_i32);
         max(50, speed_millis) as u32
     }
 
+    /// Updates level state after rows were deleted and emits unlock events.
     pub fn on_rows_deleted<T: TetrisEvents>(&mut self, count: u32, events: &mut T) {
         let before = self.rows_deleted;
         self.rows_deleted = self.rows_deleted.saturating_add(count);
@@ -202,6 +302,7 @@ impl LevelState {
         let _ = before;
     }
 
+    /// Updates score and placed-piece count after a piece locks.
     pub fn on_piece_placed(&mut self) {
         self.placed_pieces = self.placed_pieces.saturating_add(1);
         self.total_points = self
@@ -216,27 +317,37 @@ impl Default for LevelState {
     }
 }
 
+/// Event hooks emitted by the Tetris-like engine.
 pub trait TetrisEvents {
+    /// Called for each block written to the board when a piece locks.
     fn on_block_placed(&mut self, _color: Rgb8, _x: usize, _y: usize) {}
+    /// Called when level progression requests a music change.
     fn on_music(&mut self, _track_id: u8) {}
+    /// Called before a full row is removed.
     fn on_row_deleted(&mut self, _row: usize, _colors: &[Option<Rgb8>]) {}
+    /// Called when the game reaches a terminal game-over state.
     fn on_game_over(&mut self) {}
 }
 
+/// Event sink that ignores every callback.
 pub struct NoopEvents;
 
 impl TetrisEvents for NoopEvents {}
 
+/// Random source used by the games that need deterministic randomness.
 pub trait RandomSource {
+    /// Returns the next random `u32`.
     fn next_u32(&mut self) -> u32;
 }
 
+/// Tiny deterministic linear-congruential random source.
 #[derive(Clone, Copy, Debug)]
 pub struct Lcg32 {
     state: u32,
 }
 
 impl Lcg32 {
+    /// Creates a new generator from `seed`.
     pub const fn new(seed: u32) -> Self {
         Self { state: seed }
     }
@@ -249,16 +360,23 @@ impl RandomSource for Lcg32 {
     }
 }
 
+/// Active Tetris-like piece.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Piece {
+    /// Shape.
     pub kind: PieceKind,
+    /// Board-space x position.
     pub x: i16,
+    /// Board-space y position.
     pub y: i16,
+    /// Rotation index.
     pub rotation: u8,
+    /// Display color.
     pub color: Rgb8,
 }
 
 impl Piece {
+    /// Creates a piece at the given board position.
     pub const fn new(kind: PieceKind, x: i16, y: i16, color: Rgb8) -> Self {
         Self {
             kind,

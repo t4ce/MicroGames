@@ -1,3 +1,9 @@
+//! Bejeweled-style match-3 business logic.
+//!
+//! This module owns board state, valid swaps, match detection, gravity, refill,
+//! score updates, and event callbacks. Rendering and input mapping are left to
+//! the integration layer.
+
 use core::mem;
 
 use crate::RandomSource;

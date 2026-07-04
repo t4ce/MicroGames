@@ -1,3 +1,8 @@
+//! Minesweeper business logic.
+//!
+//! This module owns mine placement, first-click safety, reveal flood fill,
+//! flagging, chording, win/loss state, and event callbacks.
+
 use core::cmp::min;
 
 use crate::RandomSource;

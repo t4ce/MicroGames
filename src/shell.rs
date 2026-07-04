@@ -1,3 +1,9 @@
+//! Terminal-oriented Tetris shell adapter.
+//!
+//! The adapter uses only [`core::fmt`] plus the [`crate::shell::ShellIo`] trait.
+//! Platforms can connect it to stdio, a serial shell, a virtual console, or a
+//! custom OS terminal without changing the game logic.
+
 use crate::{Game, Lcg32, RandomSource, Rgb8, Rotation, TetrisEvents};
 
 const BOARD_W: usize = 12;

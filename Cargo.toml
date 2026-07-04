@@ -6,10 +6,11 @@ license = "MIT OR Apache-2.0"
 description = "no_std microgame business logic: plug in events, input, and output"
 homepage = "https://github.com/t4ce/MicroGames"
 repository = "https://github.com/t4ce/MicroGames"
+documentation = "https://docs.rs/microgames"
 readme = "README.md"
 keywords = ["games", "no-std", "tetris", "embedded", "logic"]
 categories = ["game-development", "no-std", "embedded"]
-include = ["Cargo.toml", "README.md", "src/**/*.rs", "examples/**/*.rs"]
+include = ["Cargo.toml", "README.md", "src/**/*.rs", "examples/**/*.rs", "examples/**/*.png"]
 
 [lib]
 path = "src/lib.rs"
@@ -20,3 +21,16 @@ path = "examples/cli_tetris.rs"
 
 [features]
 default = []
+
+[package.metadata.docs.rs]
+all-features = true
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
+debug = false
+incremental = false
+overflow-checks = false

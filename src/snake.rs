@@ -1,3 +1,8 @@
+//! Snake business logic.
+//!
+//! This module owns direction changes, movement, body growth, food spawning,
+//! scoring, wall/body collisions, and win/loss events.
+
 use crate::RandomSource;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

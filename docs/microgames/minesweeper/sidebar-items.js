@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ConfigError","GameState"],"struct":["ActionOutcome","CellView","Config","Game","NoopEvents"],"trait":["MinesweeperEvents"]};
