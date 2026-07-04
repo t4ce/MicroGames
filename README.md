@@ -80,15 +80,22 @@ platform decides what it means visually, audibly, or operationally.
 
 ## CLI Proof
 
-The included CLI example is a small std shim around the same `no_std` shell
-adapter used by older TRUEOS UI demos:
+The included CLI example is a small std shim around the same `no_std` engines
+used by older TRUEOS UI demos:
 
 ```bash
 cargo run --example cli_tetris
 ```
 
-It is deliberately plain. The interesting part is that the game logic and shell
-renderer do not depend on std, TRUEOS, or a particular terminal backend.
+Press `1` for Tetris, `2` for Snake, `r` to reset the current game, and `q` to
+quit. It is deliberately plain. The interesting part is that the game logic and
+renderers do not depend on std, TRUEOS, or a particular terminal backend.
+
+There is also a small smoke example that touches every engine:
+
+```bash
+cargo run --example all_games
+```
 
 ## Documentation
 

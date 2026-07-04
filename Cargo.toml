@@ -19,6 +19,10 @@ path = "src/lib.rs"
 name = "cli_tetris"
 path = "examples/cli_tetris.rs"
 
+[[example]]
+name = "all_games"
+path = "examples/all_games.rs"
+
 [features]
 default = []
 
